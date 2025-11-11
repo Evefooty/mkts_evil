@@ -1,0 +1,9 @@
+from libsql_client import create_client
+import os
+
+def get_db():
+    client = create_client(
+        url=os.getenv("libsql://evilmrt-footy.aws-us-west-2.turso.io"),
+        auth_token=os.getenv("eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjI4NjE3NTgsImlkIjoiMDBlYjJkMWUtMzM0Ni00OTI0LTg2NGUtMTUyNGU1MTFhYTUyIiwicmlkIjoiODkyNTc3Y2QtMzhmZi00ZjU2LWE4Y2ItYzI0OGIyMjY1ZWYzIn0.OA2wAmO3wU6dOUgUbrbe3IAqTgyPCDk3VgeUgSTLClh86XCXmC2IuotyB_-aeoM7QJcIpdfW7zxTVPn2ZvLhCg"),
+    )
+    return client
