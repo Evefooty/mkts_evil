@@ -1,96 +1,21 @@
-import os
-import json
-import time
-from dotenv import load_dotenv
-from requests_oauthlib import OAuth2Session
-from mkts_backend.config.logging_config import configure_logging
+#
+# Generated with the EVE Online Developer Portal
+# Application: evil market
+# Description:
+#   used for the mrk app on steamlit
+#
 
-load_dotenv()
-logger = configure_logging(__name__)
+# The client identifier to use when authenticating with the EVE Online SSO.
+client_id = "0133afeab41b415e8cc8aa80067a49a0"
 
-CLIENT_ID = os.getenv("CLIENT_ID")
-SECRET_KEY = os.getenv("SECRET_KEY")
-REFRESH_TOKEN = os.getenv("REFRESH_TOKEN")
-AUTH_URL = "https://login.eveonline.com/v2/oauth/authorize"
-TOKEN_URL = "https://login.eveonline.com/v2/oauth/token"
-CALLBACK_URI = "http://localhost:8000/callback"
-TOKEN_FILE = "token.json"
+# You should treat your client secret as you would a password. Do not share it outside of your application,
+# or package it along with your application in a way that would expose it to users.
+client_secret = "eat_1ImT498MCNqpjzcwsF6LDtRllsVbuhXpI_3hfzNh"
 
+# The SSO will only accept this as a valid callback URL:
+callback_url = "http://localhost:8000/callback"
 
-def load_cached_token() -> dict | None:
-    if os.path.exists(TOKEN_FILE):
-        with open(TOKEN_FILE, "r") as f:
-            return json.load(f)
-    return None
+# This application can only request the following scopes:
+scopes = ["publicData","esi-calendar.respond_calendar_events.v1","esi-calendar.read_calendar_events.v1","esi-location.read_location.v1","esi-mail.organize_mail.v1","esi-mail.read_mail.v1","esi-skills.read_skills.v1","esi-skills.read_skillqueue.v1","esi-wallet.read_corporation_wallet.v1","esi-search.search_structures.v1","esi-clones.read_clones.v1","esi-characters.read_contacts.v1","esi-killmails.read_killmails.v1","esi-corporations.read_corporation_membership.v1","esi-assets.read_assets.v1","esi-planets.manage_planets.v1","esi-fleets.write_fleet.v1","esi-ui.open_window.v1","esi-characters.write_contacts.v1","esi-fittings.read_fittings.v1","esi-fittings.write_fittings.v1","esi-markets.structure_markets.v1","esi-corporations.read_structures.v1","esi-characters.read_loyalty.v1","esi-characters.read_chat_channels.v1","esi-characters.read_medals.v1","esi-characters.read_standings.v1","esi-characters.read_agents_research.v1","esi-industry.read_character_jobs.v1","esi-markets.read_character_orders.v1","esi-characters.read_blueprints.v1","esi-characters.read_corporation_roles.v1","esi-location.read_online.v1","esi-contracts.read_character_contracts.v1","esi-clones.read_implants.v1","esi-characters.read_fatigue.v1","esi-killmails.read_corporation_killmails.v1","esi-corporations.track_members.v1","esi-wallet.read_corporation_wallets.v1","esi-characters.read_notifications.v1","esi-corporations.read_divisions.v1","esi-corporations.read_contacts.v1","esi-assets.read_corporation_assets.v1","esi-corporations.read_titles.v1","esi-corporations.read_blueprints.v1","esi-corporations.read_standings.v1","esi-industry.read_corporation_jobs.v1","esi-markets.read_corporation_orders.v1","esi-corporations.read_container_logs.v1","esi-industry.read_character_mining.v1","esi-industry.read_corporation_mining.v1","esi-planets.read_customs_offices.v1","esi-corporations.read_facilities.v1","esi-corporations.read_medals.v1","esi-characters.read_titles.v1","esi-corporations.read_fw_stats.v1","esi-corporations.read_projects.v1","esi-location.read_ship_type.v1","esi-mail.send_mail.v1","esi-wallet.read_character_wallet.v1","esi-universe.read_structures.v1","esi-fleets.read_fleet.v1","esi-ui.write_waypoint.v1","esi-contracts.read_corporation_contracts.v1","esi-corporations.read_starbases.v1","esi-characters.read_fw_stats.v1"]
 
-
-def save_token(token: dict):
-    with open(TOKEN_FILE, "w") as f:
-        json.dump(token, f)
-
-
-def get_oauth_session(token: dict | None, scope):
-    extra = {"client_id": CLIENT_ID, "client_secret": SECRET_KEY}
-    return OAuth2Session(
-        CLIENT_ID,
-        token=token,
-        redirect_uri=CALLBACK_URI,
-        scope=scope,
-        auto_refresh_url=TOKEN_URL,
-        auto_refresh_kwargs=extra,
-        token_updater=save_token,
-    )
-
-
-def get_token(requested_scope):
-    if not CLIENT_ID:
-        raise ValueError("CLIENT_ID environment variable is not set")
-    if not SECRET_KEY:
-        raise ValueError("SECRET_KEY environment variable is not set")
-    if not REFRESH_TOKEN:
-        raise ValueError("REFRESH_TOKEN environment variable is not set")
-
-    token = load_cached_token()
-    if not token:
-        logger.info("No token.json → refreshing from GitHub secret")
-        try:
-            logger.info(f"Attempting to refresh token with CLIENT_ID: {CLIENT_ID[:8]}...")
-            logger.info(f"Refresh token length: {len(REFRESH_TOKEN) if REFRESH_TOKEN else 'None'}")
-            logger.info(f"Requested scope: {requested_scope}")
-
-            token = OAuth2Session(CLIENT_ID, scope=requested_scope).refresh_token(
-                TOKEN_URL,
-                refresh_token=REFRESH_TOKEN,
-                client_id=CLIENT_ID,
-                client_secret=SECRET_KEY,
-            )
-            save_token(token)
-            logger.info("Token refreshed successfully")
-            return token
-        except Exception as e:
-            logger.error(f"Failed to refresh token: {e}")
-            logger.error(f"CLIENT_ID: {CLIENT_ID}")
-            logger.error(
-                f"REFRESH_TOKEN length: {len(REFRESH_TOKEN) if REFRESH_TOKEN else 'None'}"
-            )
-            raise
-    else:
-        oauth = get_oauth_session(token, requested_scope)
-
-        if token["expires_at"] < time.time():
-            logger.info("Token expired → refreshing")
-            try:
-                oauth.refresh_token(TOKEN_URL, refresh_token=token["refresh_token"])
-                new_token = oauth.token
-                save_token(new_token)
-                return new_token
-            except Exception as e:
-                logger.error(f"Failed to refresh cached token: {e}")
-                raise
-        else:
-            return token
-
-
-if __name__ == "__main__":
-    pass
 
