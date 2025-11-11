@@ -1,0 +1,9 @@
+import os
+from libsql_client import create_client
+import streamlit as st
+
+def get_db():
+    url = st.secrets.get("TURSO_DATABASE_URL", os.getenv("TURSO_DATABASE_URL"))
+    token = st.secrets.get("TURSO_DATABASE_AUTH_TOKEN", os.getenv("TURSO_DATABASE_AUTH_TOKEN"))
+
+    return create_client(url=url, auth_token=token)
